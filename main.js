@@ -118,7 +118,7 @@ function post(serviceNowTable, callback) {
   // that holds the HTTP request method, credentials, and the API's URL.
   // Some properties are hardcoded, like the method and part of the URI.
   // Some properties are read from global const options.
-  // Some properties are passed into function get() through parameters.
+  // Some properties are passed into function post() through parameters.
   const requestOptions = {
     method: 'POST',
     auth: {
