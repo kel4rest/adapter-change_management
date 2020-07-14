@@ -32,7 +32,7 @@
     "operator"
   ],
   "task": true
-}
+},
 {
   "name": "postRecord",
   "summary": "Post a Change Ticket",

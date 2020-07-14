@@ -196,7 +196,7 @@ healthcheck(callback) {
 			} else if (result.body) 
 			{
 			let parcedJSON = JSON.parse(result.body);
-			let data = parcedJSON.result.map(record => this.extractJSONGenericFields(record));
+			let data = parcedJSON.result.map(record => this.extractJSONFieldsNeeded(record));
 			callback(data, error);
 		} else {
 			callback(result, error);
@@ -231,7 +231,7 @@ healthcheck(callback) {
 			} else if (result.body) 
 			{
 			let parcedJSON = JSON.parse(result.body);
-			let data = this.extractJSONGenericFields(parcedJSON.result);
+			let data = this.extractJSONFieldsNeeded(parcedJSON.result);
 			callback(data, error);
 		} else {
 			callback(result, error);
@@ -240,7 +240,7 @@ healthcheck(callback) {
 		
 	});
   }
-  extractJSONGenericFields(jsonRecord){    
+  extractJSONFieldsNeeded(jsonRecord){    
      
      	  return {
             "change_ticket_number": jsonRecord.number,
