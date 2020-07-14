@@ -190,23 +190,7 @@ healthcheck(callback) {
      * Note how the object was instantiated in the constructor().
      * get() takes a callback function.
      */
-     this.connector.get((result, error) => {
-		if (error) {
-			callback(result, error);
-			} else if (result.body) 
-			{
-			let parcedJSON = JSON.parse(result.body);
-			let data = parcedJSON.result.map(record => this.extractJSONGenericFields(record));
-			callback(data, error);
-		} else {
-			callback(result, error);
-		}
-		
-		
-	});
-
-    
-
+     this.connector.get(callback);
   }
 
   /**
@@ -225,34 +209,8 @@ healthcheck(callback) {
      * Note how the object was instantiated in the constructor().
      * post() takes a callback function.
      */
-     this.connector.post((result, error) => {
-		if (error) {
-			callback(result, error);
-			} else if (result.body) 
-			{
-			let parcedJSON = JSON.parse(result.body);
-			let data = this.extractJSONGenericFields(parcedJSON.result);
-			callback(data, error);
-		} else {
-			callback(result, error);
-		}
-		
-		
-	});
+     this.connector.post(callback);
   }
-  extractJSONGenericFields(jsonRecord){    
-     
-     	  return {
-            "change_ticket_number": jsonRecord.number,
-            "active": jsonRecord.active,
-            "priority": jsonRecord.priority,
-            "description": jsonRecord.description,
-            "work_start": jsonRecord.work_start,
-            "work_end": jsonRecord.work_end,
-            "change_ticket_key": jsonRecord.sys_id
-        };
-	  
-  }	
 }
 
 module.exports = ServiceNowAdapter;
