@@ -1,216 +1,178 @@
-// Update this constant with your ServiceNow credentials
-const options = {
-  url: 'https://dev84030.service-now.com/',
-  username: 'admin',
-  password: 'Rgayden1!'
-};
-
+// Import built-in Node.js package path.
+const path = require('path');
 
 /**
- * Import the Node.js request package.
- * See https://www.npmjs.com/package/request
+ * Import the ServiceNowConnector class from local Node.js module connector.js
+ *   and assign it to constant ServiceNowConnector.
+ * When importing local modules, IAP requires an absolute file reference.
+ * Built-in module path's join method constructs the absolute filename.
  */
-const request = require('request');
-
-
-// We'll use this regular expression to verify REST API's HTTP response status code.
-const validResponseRegex = /(2\d\d)/;
-
-// Use JSDoc to create a JSDoc data type for an IAP callback.
-// Call the new type iapCallback.
-// Notice iapCallback is a data-first callback.
+const ServiceNowConnector = require(path.join(__dirname, '/connector.js'));
 
 /**
- * @callback iapCallback
- * @description A [callback function]{@link
- *   https://developer.mozilla.org/en-US/docs/Glossary/Callback_function}
- *   is a function passed into another function as an argument, which is
- *   then invoked inside the outer function to complete some kind of
- *   routine or action.
- *
- * @param {*} responseData - When no errors are caught, return data as a
- *   single argument to callback function.
- * @param {error} [errorMessage] - If an error is caught, return error
- *   message in optional second argument to callback function.
+ * Import built-in Node.js package events' EventEmitter class and
+ * assign it to constant EventEmitter. We will create a child class
+ * from this class.
  */
-
+const EventEmitter = require('events').EventEmitter;
 
 /**
- * @function constructUri
- * @description Build and return the proper URI by appending an optionally passed
- *   [URL query string]{@link https://en.wikipedia.org/wiki/Query_string}.
+ * The ServiceNowAdapter class.
  *
- * @param {string} serviceNowTable - The table target of the ServiceNow table API.
- * @param {string} [query] - Optional URL query string.
- *
- * @return {string} ServiceNow URL
+ * @summary ServiceNow Change Request Adapter
+ * @description This class contains IAP adapter properties and methods that IAP
+ *   brokers and products can execute. This class inherits the EventEmitter
+ *   class.
  */
-function constructUri(serviceNowTable, query = null) {
-  let uri = `/api/now/table/${serviceNowTable}`;
-  if (query) {
-    uri = uri + '?' + query;
+class ServiceNowAdapter extends EventEmitter {
+
+  /**
+   * Here we document the ServiceNowAdapter class' callback. It must follow IAP's
+   *   data-first convention.
+   * @callback ServiceNowAdapter~requestCallback
+   * @param {(object|string)} responseData - The entire REST API response.
+   * @param {error} [errorMessage] - An error thrown by REST API call.
+   */
+
+  /**
+   * Here we document the adapter properties.
+   * @typedef {object} ServiceNowAdapter~adapterProperties - Adapter
+   *   instance's properties object.
+   * @property {string} url - ServiceNow instance URL.
+   * @property {object} auth - ServiceNow instance credentials.
+   * @property {string} auth.username - Login username.
+   * @property {string} auth.password - Login password.
+   * @property {string} serviceNowTable - The change request table name.
+   */
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @constructs
+   *
+   * @description Instantiates a new instance of the Itential ServiceNow Adapter.
+   * @param {string} id - Adapter instance's ID.
+   * @param {ServiceNowAdapter~adapterProperties} adapterProperties - Adapter instance's properties object.
+   */
+  constructor(id, adapterProperties) {
+    // Call super or parent class' constructor.
+    super();
+    // Copy arguments' values to object properties.
+    this.id = id;
+    this.props = adapterProperties;
+    // Instantiate an object from the connector.js module and assign it to an object property.
+    this.connector = new ServiceNowConnector({
+      url: this.props.url,
+      username: this.props.auth.username,
+      password: this.props.auth.password,
+      serviceNowTable: this.props.serviceNowTable
+    });
   }
-  return uri;
-}
 
-
-/**
- * @function isHibernating
- * @description Checks if request function responded with evidence of
- *   a hibernating ServiceNow instance.
- *
- * @param {object} response - The response argument passed by the request function in its callback.
- *
- * @return {boolean} Returns true if instance is hibernating. Otherwise returns false.
- */
-function isHibernating(response) {
-  return response.body.includes('Instance Hibernating page')
-  && response.body.includes('<html>')
-  && response.statusCode === 200;
-}
-
-
-/**
- * @function processRequestResults
- * @description Inspect ServiceNow API response for an error, bad response code, or
- *   a hibernating instance. If any of those conditions are detected, return an error.
- *   Else return the API's response.
- *
- * @param {error} error - The error argument passed by the request function in its callback.
- * @param {object} response - The response argument passed by the request function in its callback.
- * @param {string} body - The HTML body argument passed by the request function in its callback.
- * @param {iapCallback} callback - Callback a function.
- * @param {(object|string)} callback.data - The API's response. Will be an object if sunnyday path.
- *   Will be HTML text if hibernating instance.
- * @param {error} callback.error - The error property of callback.
- */
-function processRequestResults(error, response, body, callback) {
   /**
-   * You must build the contents of this function.
-   * Study your package and note which parts of the get()
-   * and post() functions evaluate and respond to data
-   * and/or errors the request() function returns.
-   * This function must not check for a hibernating instance;
-   * it must call function isHibernating.
+   * @memberof ServiceNowAdapter
+   * @method connect
+   * @summary Connect to ServiceNow
+   * @description Complete a single healthcheck and emit ONLINE or OFFLINE.
+   *   IAP calls this method after instantiating an object from the class.
+   *   There is no need for parameters because all connection details
+   *   were passed to the object's constructor and assigned to object property this.props.
    */
-   let data = null;
-   let err = null;
+  connect() {
+    // As a best practice, Itential recommends isolating the health check action
+    // in its own method.
+    this.healthcheck();
+  }
 
-if (error){
-    err = error
-}
-
-   if(isHibernating(response)){
-       err = "Instance Hibernating page"
-   } else {
-       data = response
-   }
-
-   
-
-   return callback(data, err)
-}
-
-
-/**
- * @function sendRequest
- * @description Builds final options argument for request function
- *   from global const options and parameter callOptions.
- *   Executes request call, then verifies response.
- *
- * @param {object} callOptions - Passed call options.
- * @param {string} callOptions.query - URL query string.
- * @param {string} callOptions.serviceNowTable - The table target of the ServiceNow table API.
- * @param {string} callOptions.method - HTTP API request method.
- * @param {iapCallback} callback - Callback a function.
- * @param {(object|string)} callback.data - The API's response. Will be an object if sunnyday path.
- *   Will be HTML text if hibernating instance.
- * @param {error} callback.error - The error property of callback.
- */
-function sendRequest(callOptions, callback) {
-  // Initialize return arguments for callback
-  let uri;
-  if (callOptions.query)
-    uri = constructUri(callOptions.serviceNowTable, callOptions.query);
-  else
-    uri = constructUri(callOptions.serviceNowTable);
   /**
-   * You must build the requestOptions object.
-   * This is not a simple copy/paste of the requestOptions object
-   * from the previous lab. There should be no
-   * hardcoded values.
+   * @memberof ServiceNowAdapter
+   * @method healthcheck
+   * @summary Check ServiceNow Health
+   * @description Verifies external system is available and healthy.
+   *   Calls method emitOnline if external system is available.
+   *
+   * @param {ServiceNowAdapter~requestCallback} [callback] - The optional callback
+   *   that handles the response.
    */
-  const requestOptions = {
-      method: callOptions.method,
-      auth: {
-          user: options.username,
-          pass: options.password
-      },
-      baseUrl: options.url,
-      'uri': uri
-  };
-  request(requestOptions, (error, response, body) => {
-    processRequestResults(error, response, body, (processedResults, processedError) => callback(processedResults, processedError));
-  });
+  healthcheck(callback) {
+    // We will build this method in a later lab. For now, it will emulate
+    // a healthy integration by emmitting ONLINE.
+    this.emitOnline();
+  }
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @method emitOffline
+   * @summary Emit OFFLINE
+   * @description Emits an OFFLINE event to IAP indicating the external
+   *   system is not available.
+   */
+  emitOffline() {
+    this.emitStatus('OFFLINE');
+    log.warn('ServiceNow: Instance is unavailable.');
+  }
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @method emitOnline
+   * @summary Emit ONLINE
+   * @description Emits an ONLINE event to IAP indicating external
+   *   system is available.
+   */
+  emitOnline() {
+    this.emitStatus('ONLINE');
+    log.info('ServiceNow: Instance is available.');
+  }
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @method emitStatus
+   * @summary Emit an Event
+   * @description Calls inherited emit method. IAP requires the event
+   *   and an object identifying the adapter instance.
+   *
+   * @param {string} status - The event to emit.
+   */
+  emitStatus(status) {
+    this.emit(status, { id: this.id });
+  }
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @method getRecord
+   * @summary Get ServiceNow Record
+   * @description Retrieves a record from ServiceNow.
+   *
+   * @param {ServiceNowAdapter~requestCallback} callback - The callback that
+   *   handles the response.
+   */
+  getRecord(callback) {
+    /**
+     * Write the body for this function.
+     * The function is a wrapper for this.connector's get() method.
+     * Note how the object was instantiated in the constructor().
+     * get() takes a callback function.
+     */
+     this.connector.get(callback);
+  }
+
+  /**
+   * @memberof ServiceNowAdapter
+   * @method postRecord
+   * @summary Create ServiceNow Record
+   * @description Creates a record in ServiceNow.
+   *
+   * @param {ServiceNowAdapter~requestCallback} callback - The callback that
+   *   handles the response.
+   */
+  postRecord(callback) {
+    /**
+     * Write the body for this function.
+     * The function is a wrapper for this.connector's post() method.
+     * Note how the object was instantiated in the constructor().
+     * post() takes a callback function.
+     */
+     this.connector.post(callback);
+  }
 }
 
-
-/**
- * @function get
- * @description Call the ServiceNow GET API. Sets the API call's method and query,
- *   then calls sendRequest().
- *
- * @param {object} callOptions - Passed call options.
- * @param {string} callOptions.serviceNowTable - The table target of the ServiceNow table API.
- * @param {iapCallback} callback - Callback a function.
- * @param {(object|string)} callback.data - The API's response. Will be an object if sunnyday path.
- *   Will be HTML text if hibernating instance.
- * @param {error} callback.error - The error property of callback.
- */
-function get(callOptions, callback) {
-  callOptions.method = 'GET';
-  callOptions.query = 'sysparm_limit=1';
-  sendRequest(callOptions, (results, error) => callback(results, error));
-}
-
-
-/**
- * @function post
- * @description Call the ServiceNow POST API. Sets the API call's method,
- *   then calls sendRequest().
- *
- * @param {object} callOptions - Passed call options.
- * @param {string} callOptions.serviceNowTable - The table target of the ServiceNow table API.
- * @param {iapCallback} callback - Callback a function.
- * @param {(object|string)} callback.data - The API's response. Will be an object if sunnyday path.
- *   Will be HTML text if hibernating instance.
- * @param {error} callback.error - The error property of callback.
- */
-function post(callOptions, callback) {
-  callOptions.method = 'POST';
-  sendRequest(callOptions, (results, error) => callback(results, error));
-}
-
-
-/**
- * @function main
- * @description Tests get() and post() functions.
- */
-function main() {
-  get({ serviceNowTable: 'change_request' }, (data, error) => {
-    if (error) {
-      console.error(`\nError returned from GET request:\n${JSON.stringify(error)}`);
-    }
-    console.log(`\nResponse returned from GET request:\n${JSON.stringify(data)}`)
-  });
-  post({ serviceNowTable: 'change_request' }, (data, error) => {
-    if (error) {
-      console.error(`\nError returned from POST request:\n${JSON.stringify(error)}`);
-    }
-    console.log(`\nResponse returned from POST request:\n${JSON.stringify(data)}`)
-  });
-}
-
-
-// Call main to run it.
-main();
+module.exports = ServiceNowAdapter;
