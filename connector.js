@@ -82,7 +82,7 @@ class ServiceNowConnector {
        log.error('\nError returned from '+requestType+' request:\nError present. ');   //
         callbackError = error;
      } else if (!validResponseRegex.test(response.statusCode)) {
-        log.error('\nError returned from '+requestType+' request:\nBad response code. ');//
+        //log.error('\nError returned from '+requestType+' request:\nBad response code. ');//
         callbackError = response;
      } else if (this.isHibernating(response)) {
         callbackError = 'Service Now instance is hibernating. ';
@@ -95,6 +95,8 @@ class ServiceNowConnector {
  }
 
 
+    
+    
  /**
    * @memberof ServiceNowConnector
    * 

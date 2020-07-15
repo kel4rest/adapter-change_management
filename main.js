@@ -241,10 +241,12 @@ changeData (e) {
                         }
                     }
                 }
-            } else {
+            } 
+            else {
               log.error("getRecord returned error: "+errorMessage+"\n");
            }
-        } else {
+        } 
+        else {
               log.info("getRecord: responseData is null or not an object!\n");
        }
         log.info("In getRecord, modified responseData = \n"+JSON.stringify(responseData)+"\n");
