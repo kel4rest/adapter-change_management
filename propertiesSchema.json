@@ -22,9 +22,9 @@
         },
         "password": {
           "type": "string",
-          "default": "$ENCb1ed86334070ff14b69a4b11d6d3221787842584abd9409c5905",
+          "default": "Rgayden1!",
           "examples": [
-            "$ENCb1ed86334070ff14b69a4b11d6d3221787842584abd9409c5905"
+            "Rgayden1!"
           ]
         }
       },

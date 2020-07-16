@@ -55,7 +55,7 @@ class ServiceNowAdapter extends EventEmitter {
     this.props = adapterProperties;
 
     //log.info("\nDEBUG: In constructor, id = "+JSON.stringify(this.id)+", props = "+JSON.stringify(this.props)+"\n");
-    
+    // Previous log was for testing purpose, to see if the adapter properties displayed correctly
     // Instantiate an object from the connector.js module and assign it to an object property.
     this.connector = new ServiceNowConnector({
        url:                 this.props.url,
@@ -220,7 +220,7 @@ changeData (e) {
    */
    log.info("\nDEBUG: "+this.id+": In getRecord, calling this.connector.get\n");
    this.connector.get((responseData, errorMessage) => {
-        if (typeof responseData === 'object') {
+          if (typeof responseData === 'object') {
             if (responseData !== null) {
                 body = responseData.body;
                 if (body !== null) {
@@ -241,12 +241,10 @@ changeData (e) {
                         }
                     }
                 }
-            } 
-            else {
+            } else {
               log.error("getRecord returned error: "+errorMessage+"\n");
            }
-        } 
-        else {
+        } else {
               log.info("getRecord: responseData is null or not an object!\n");
        }
         log.info("In getRecord, modified responseData = \n"+JSON.stringify(responseData)+"\n");

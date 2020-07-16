@@ -78,12 +78,14 @@ class ServiceNowConnector {
      * data and/or errors the request() function returns. This function must not
      * check for a hibernating instance; it must call function isHibernating.
      */
+     //log.error("Response code is :"+response.statusCode+"\n Error is : "+error+ "\n"); //**USED FOR TESTING**
      if (error) {
        log.error('\nError returned from '+requestType+' request:\nError present. ');   //
         callbackError = error;
      } else if (!validResponseRegex.test(response.statusCode)) {
-        //log.error('\nError returned from '+requestType+' request:\nBad response code. ');//
+        log.error('\nError returned from '+requestType+' request:\nBad response code. ');//
         callbackError = response;
+        //log.error("The error response is: "+response+ "\n") //***USED FOR TESTING***
      } else if (this.isHibernating(response)) {
         callbackError = 'Service Now instance is hibernating. ';
         log.error('\nError returned from '+requestType+' request:\n');//
@@ -91,12 +93,11 @@ class ServiceNowConnector {
        log.info('\nResponse returned from '+requestType+' request:\n'); //
         callbackData = response;
      }
+     //log.error("CallbackData is : "+callbackData+", CallbackError is : "+callbackError+ "\n"); //testing.. No longer needed
      return callback(callbackData, callbackError);
  }
 
 
-    
-    
  /**
    * @memberof ServiceNowConnector
    * 
@@ -222,9 +223,10 @@ class ServiceNowConnector {
               serviceNowTable: this.options.serviceNowTable
     };
     getCallOptions.method = 'GET';
-    getCallOptions.query  = 'sysparm_limit=3';
+    getCallOptions.query  = 'sysparm_limit=1';
     this.sendRequest(getCallOptions, (results, error) => callback(results, error));
  }
 }
 
 module.exports = ServiceNowConnector;
+
